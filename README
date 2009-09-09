@@ -37,6 +37,6 @@ need to know to make your own page better.
 </r:search:empty>
 
 <r:search:results>
-  <r:content />
+  <r:content/>
 </r:search:results>
 ==================================== SNIP ====================================
