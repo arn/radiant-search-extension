@@ -22,20 +22,12 @@ class SearchPage < Page
     end
   end
   
-  desc %{    Renders the contained block if results were returned.}
   tag 'search:results' do |tag|
-    unless query_result.blank?
-      tag.expand
-    end
-  end
-
-  desc %{    Renders the contained block for each result page.  The context
-    inside the tag refers to the found page.}
-  tag 'search:results:each' do |tag|
     returning String.new do |content|
       query_result.each do |page|
-        tag.locals.page = page
-        content << tag.expand
+        content << "<p><a href='#{page.url}'>#{page.title}</a><br />"
+        content << helper.truncate(helper.strip_tags(page.parts.first.content).gsub(/\s+/," "), 100)
+        content << "</p>"
       end
     end
   end
@@ -87,9 +79,7 @@ class SearchPage < Page
     q = @request.parameters[:q]
 
     unless (@query = q.to_s.strip).blank?
-      q = q.gsub(/(\S+)/, '\1*')
-      @query_result = Page.find(:all, :order => 'published_at DESC', :include => [ :parts ],
-        :conditions => ["(MATCH (page_parts.content) AGAINST (?) OR MATCH (title) AGAINST (?)) AND status_id = '100'", q, q])
+      @query_result = Page.find_by_title(q).find_by_status(100) + Page.find_by_content(q).find_by_status(100)
     end
     lazy_initialize_parser_and_context
     if layout
@@ -106,6 +96,19 @@ class SearchPage < Page
 end
 
 class Page
+  
+  named_scope :find_by_status, lambda { |input| {:conditions => ["status_id = ?", input]}}
+  named_scope :find_by_content, lambda { |input| {
+    :include => :parts,
+    :conditions => ["MATCH (page_parts.content) AGAINST ('#{input.gsub(/(\S+)/, '+\1*')}' IN BOOLEAN MODE)"],
+    :order => ["MATCH (page_parts.content) AGAINST ('#{input}') DESC"]
+    }
+  }
+  named_scope :find_by_title, lambda { |input| {
+    :conditions => ["MATCH (title) AGAINST ('#{input.gsub(/(\S+)/, '+\1*')}' IN BOOLEAN MODE)"],
+    :order => ["MATCH (title) AGAINST ('#{input}') DESC"]
+    }
+  }
   
   #### Tags ####
   desc %{    The namespace for all search tags.}

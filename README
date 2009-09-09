@@ -6,7 +6,7 @@
               live-preview options.
 
 Requirements:
-  None
+  MySQL database with MyISAM pages and page_parts tables with FULLTEXT indexes
 
 Installation:
   This extension works by creating a new page type called "Search".  After you 
@@ -37,13 +37,6 @@ need to know to make your own page better.
 </r:search:empty>
 
 <r:search:results>
-  Found the following pages that contain "<r:search:query/>".
-
-  <ul>
-  <r:search:results:each>
-  <li><r:link/><br/>
-      <r:search:highlight><r:content/></r:search:highlight></li>
-  </r:search:results:each>
-  </ul>
+  <r:content />
 </r:search:results>
 ==================================== SNIP ====================================
