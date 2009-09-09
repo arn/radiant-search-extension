@@ -85,18 +85,11 @@ class SearchPage < Page
     @query_result = []
     @query = ""
     q = @request.parameters[:q]
-    case Page.connection.adapter_name.downcase
-    when 'postgresql'
-      sql_content_check = "((lower(page_parts.content) LIKE ?) OR (lower(title) LIKE ?))"
-    else
-      sql_content_check = "((LOWER(page_parts.content) LIKE ?) OR (LOWER(title) LIKE ?))"
-    end
+
     unless (@query = q.to_s.strip).blank?
-      tokens = query.split.collect { |c| "%#{c.downcase}%"}
-      pages = Page.find(:all, :order => 'published_at DESC', :include => [ :parts ],
-          :conditions => [(["#{sql_content_check}"] * tokens.size).join(" AND "), 
-                         *tokens.collect { |token| [token] * 2 }.flatten])
-      @query_result = pages.delete_if { |p| !p.published? }
+      q = q.gsub(/(\S+)/, '\1*')
+      @query_result = Page.find(:all, :order => 'published_at DESC', :include => [ :parts ],
+        :conditions => ["(MATCH (page_parts.content) AGAINST (?) OR MATCH (title) AGAINST (?)) AND status_id = '100'", q, q])
     end
     lazy_initialize_parser_and_context
     if layout
@@ -113,6 +106,7 @@ class SearchPage < Page
 end
 
 class Page
+  
   #### Tags ####
   desc %{    The namespace for all search tags.}
   tag 'search' do |tag|
